@@ -1,48 +1,41 @@
+
+import { useEffect, useState } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import ProjectCard from './ProjectCards';
-
-const sampleProjects = [
-  {
-    id: 1,
-    slug: 'residential-solar-installation',
-    title: 'Residential Solar Installation',
-    location: 'Akure, Ondo State',
-    description:
-      'A residential solar installation designed to provide dependable electricity and reduce reliance on the public power supply.',
-    coverImage:
-      'https://images.unsplash.com/photo-1509391366360-2e959784a276?w=900&q=85',
-  },
-  {
-    id: 2,
-    slug: 'commercial-solar-system',
-    title: 'Commercial Solar System',
-    location: 'Lagos, Nigeria',
-    description:
-      'A solar energy solution designed to support the daily power requirements of a commercial facility.',
-    coverImage:
-      'https://images.unsplash.com/photo-1497435334941-8c899ee9e8e9?w=900&q=85',
-  },
-  {
-    id: 3,
-    slug: 'solar-inverter-installation',
-    title: 'Solar Inverter Installation',
-    location: 'Ibadan, Oyo State',
-    description:
-      'A neatly installed solar inverter and battery system built to provide reliable backup power.',
-    coverImage:
-      'https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?w=900&q=85',
-  },
-];
+import { getPublishedProjects } from '../../firebase/services/projectServices';
 
 function FeaturedProjects() {
+  const [projects, setProjects] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        const data = await getPublishedProjects();
+
+        setProjects(
+          data.slice(0, 3).map((project) => ({
+            ...project,
+            coverImage: project.coverImage || project.image,
+          }))
+        );
+      } catch (err) {
+        console.error('Failed to fetch featured projects:', err);
+        setError('Unable to load featured projects.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProjects();
+  }, []);
+
   return (
     <section className="bg-[#F5F7FA] section-padding">
       <div className="container">
-
-       
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-12">
-
           <div>
             <p className="text-sm font-semibold text-[#D99A08] uppercase tracking-wider mb-3">
               Our Portfolio
@@ -67,13 +60,25 @@ function FeaturedProjects() {
           </Link>
         </div>
 
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 p-3 lg:grid-cols-3 gap-7">
-          {sampleProjects.map((project) => (
-            <ProjectCard key={project.id} project={project} />
-          ))}
-        </div>
-
+        {loading ? (
+          <div className="py-16 text-center text-slate-500">
+            Loading featured projects...
+          </div>
+        ) : error ? (
+          <div className="py-16 text-center text-red-600">
+            {error}
+          </div>
+        ) : projects.length === 0 ? (
+          <div className="py-16 text-center text-slate-500">
+            Our featured projects will appear here soon.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 p-3 lg:grid-cols-3 gap-7">
+            {projects.map((project) => (
+              <ProjectCard key={project.id} project={project} />
+            ))}
+          </div>
+        )}
       </div>
     </section>
   );

@@ -1,196 +1,253 @@
-import { useState } from 'react';
-import { ChevronLeft, ChevronRight, FolderOpen } from 'lucide-react';
+
+import { useEffect, useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
+import {
+  ArrowLeft,
+  MapPin,
+  FolderOpen,
+  ExternalLink,
+} from 'lucide-react';
+
 import Navbar from '../components/layouts/NavBar';
 import Footer from '../components/layouts/Footer';
-import ProjectCard from '../components/projects/ProjectCards';
+import { getPublishedProjectBySlug } from '../firebase/services/projectServices';
 
-const projects = [
-  {
-    id: 1,
-    slug: 'residential-solar-installation',
-    title: 'Residential Solar Installation',
-    location: 'Akure, Ondo State',
-    description: 'A residential solar installation designed to provide dependable electricity and reduce reliance on the public power supply.',
-    coverImage: 'https://images.unsplash.com/photo-1509391366360-2e959784a276?w=900&q=85',
-  },
-  {
-    id: 2,
-    slug: 'commercial-solar-system',
-    title: 'Commercial Solar System',
-    location: 'Lagos, Nigeria',
-    description: 'A solar energy solution designed to support the daily power requirements of a commercial facility.',
-    coverImage: 'https://images.unsplash.com/photo-1497435334941-8c899ee9e8e9?w=900&q=85',
-  },
-  {
-    id: 3,
-    slug: 'solar-inverter-installation',
-    title: 'Solar Inverter Installation',
-    location: 'Ibadan, Oyo State',
-    description: 'A neatly installed solar inverter and battery system built to provide reliable backup power.',
-    coverImage: 'https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?w=900&q=85',
-  },
-  {
-    id: 4,
-    slug: 'rooftop-solar-project',
-    title: 'Rooftop Solar Project',
-    location: 'Abuja, Nigeria',
-    description: 'A rooftop solar system designed to harness clean energy and support everyday electricity needs.',
-    coverImage: 'https://images.unsplash.com/photo-1497440001374-f26997328c1b?w=900&q=85',
-  },
-  {
-    id: 5,
-    slug: 'industrial-solar-installation',
-    title: 'Industrial Solar Installation',
-    location: 'Ogun State, Nigeria',
-    description: 'A solar installation designed to support the energy requirements of an industrial facility.',
-    coverImage: 'https://images.unsplash.com/photo-1508514177221-188b1cf16e9d?w=900&q=85',
-  },
-  {
-    id: 6,
-    slug: 'home-inverter-system',
-    title: 'Home Inverter System',
-    location: 'Ondo State, Nigeria',
-    description: 'A home solar and inverter solution designed to provide dependable backup electricity.',
-    coverImage: 'https://images.unsplash.com/photo-1509391366360-2e959784a276?w=900&q=85',
-  },
-  {
-    id: 7,
-    slug: 'business-solar-installation',
-    title: 'Business Solar Installation',
-    location: 'Lagos, Nigeria',
-    description: 'A solar energy installation for a business facility.',
-    coverImage: 'https://images.unsplash.com/photo-1497435334941-8c899ee9e8e9?w=900&q=85',
-  },
-  {
-    id: 8,
-    slug: 'solar-panel-project',
-    title: 'Solar Panel Project',
-    location: 'Akure, Ondo State',
-    description: 'A solar panel installation designed for dependable electricity.',
-    coverImage: 'https://images.unsplash.com/photo-1508514177221-188b1cf16e9d?w=900&q=85',
-  },
-  {
-    id: 9,
-    slug: 'residential-inverter-project',
-    title: 'Residential Inverter Project',
-    location: 'Abuja, Nigeria',
-    description: 'A residential inverter installation providing an alternative power source.',
-    coverImage: 'https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?w=900&q=85',
-  },
-];
+function ProjectDetails() {
+  const { slug } = useParams();
 
-const PROJECTS_PER_PAGE = 6;
+  const [project, setProject] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-function Projects() {
-  const [currentPage, setCurrentPage] = useState(1);
+  useEffect(() => {
+    const fetchProject = async () => {
+      try {
+        setLoading(true);
+        setError('');
 
-  const totalPages = Math.ceil(projects.length / PROJECTS_PER_PAGE);
+        const data = await getPublishedProjectBySlug(slug);
 
-  const startIndex = (currentPage - 1) * PROJECTS_PER_PAGE;
+        setProject(data);
+      } catch (err) {
+        console.error('Failed to fetch project:', err);
+        setError('Unable to load this project. Please try again later.');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const displayedProjects = projects.slice(
-    startIndex,
-    startIndex + PROJECTS_PER_PAGE
-  );
+    fetchProject();
+  }, [slug]);
+
+  const coverImage = project?.coverImage || project?.image;
+
+  const gallery = (project?.gallery || [])
+    .map((item) => typeof item === 'string' ? item : item.url)
+    .filter(Boolean);
+
+  const images = [
+    ...(coverImage ? [coverImage] : []),
+    ...gallery.filter((image) => image !== coverImage),
+  ];
 
   return (
     <>
       <Navbar />
 
-      <main>
-      
-        <section className="bg-[#F5F7FA] py-20 sm:py-24">
-          <div className="container">
-            <p className="text-sm font-semibold text-[#D99A08] uppercase tracking-wider mb-4">
-              Our Portfolio
-            </p>
-
-            <h1 className="text-4xl sm:text-5xl font-extrabold text-[#102B46] tracking-tight">
-              Our Projects
+      <main className="bg-white min-h-screen">
+        {loading ? (
+          <div className="container py-32 text-center text-slate-500">
+            Loading project details...
+          </div>
+        ) : error ? (
+          <div className="container py-32 text-center">
+            <p className="text-red-600 mb-6">{error}</p>
+            <Link
+              to="/projects"
+              className="text-[#102B46] font-semibold hover:text-[#D99A08]"
+            >
+              Back to Projects
+            </Link>
+          </div>
+        ) : !project ? (
+          <div className="container py-32 text-center">
+            <h1 className="text-2xl font-bold text-[#102B46]">
+              Project Not Found
             </h1>
 
-            <p className="text-slate-500 leading-8 mt-5 max-w-2xl">
-              Explore our completed solar installations and discover
-              the work, experience and solutions behind every project.
+            <p className="text-slate-500 mt-3">
+              This project may have been removed or is no longer published.
             </p>
+
+            <Link
+              to="/projects"
+              className="inline-flex items-center gap-2 mt-7 text-[#102B46] font-semibold hover:text-[#D99A08]"
+            >
+              <ArrowLeft size={18} />
+              Back to Projects
+            </Link>
           </div>
-        </section>
-
-
-        <section className="section-padding bg-white">
-          <div className="container">
-
-            <div className="flex items-center justify-between mb-9">
-              <div>
-                <h2 className="text-xl font-bold text-[#102B46]">
-                  Completed Projects
-                </h2>
-
-                <p className="text-sm text-slate-500 mt-2">
-                  Showing {startIndex + 1}–
-                  {Math.min(startIndex + PROJECTS_PER_PAGE, projects.length)}
-                  {' '}of {projects.length} projects
-                </p>
-              </div>
-
-              <div className="hidden sm:flex items-center gap-2 text-sm text-slate-400">
-                <FolderOpen size={18} />
-                Project Gallery
-              </div>
-            </div>
-
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-7">
-              {displayedProjects.map((project) => (
-                <ProjectCard key={project.id} project={project} />
-              ))}
-            </div>
-
-
-            {totalPages > 1 && (
-              <div className="flex items-center justify-center gap-3 mt-16">
-
-                <button
-                  type="button"
-                  onClick={() => setCurrentPage((page) => page - 1)}
-                  disabled={currentPage === 1}
-                  className="w-11 h-11 rounded-lg border border-slate-200 flex items-center justify-center text-[#102B46] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#F5F7FA] transition-colors"
-                  aria-label="Previous page"
+        ) : (
+          <>
+            <section className="bg-[#F5F7FA] py-16 sm:py-20">
+              <div className="container">
+                <Link
+                  to="/projects"
+                  className="inline-flex items-center gap-2 text-sm font-semibold text-[#102B46] hover:text-[#D99A08] mb-10"
                 >
-                  <ChevronLeft size={20} />
-                </button>
+                  <ArrowLeft size={18} />
+                  Back to Projects
+                </Link>
 
-                {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
-                  <button
-                    key={page}
-                    type="button"
-                    onClick={() => setCurrentPage(page)}
-                    className={`w-11 h-11 rounded-lg text-sm font-semibold transition-colors ${
-                      currentPage === page
-                        ? 'bg-[#102B46] text-white'
-                        : 'border border-slate-200 text-[#102B46] hover:bg-[#F5F7FA]'
-                    }`}
-                    aria-label={`Go to page ${page}`}
-                    aria-current={currentPage === page ? 'page' : undefined}
+                <div className="max-w-3xl">
+                  {project.category && (
+                    <p className="text-sm font-semibold text-[#D99A08] uppercase tracking-wider mb-4">
+                      {project.category}
+                    </p>
+                  )}
+
+                  <h1 className="text-3xl sm:text-5xl font-extrabold text-[#102B46] tracking-tight">
+                    {project.title}
+                  </h1>
+
+                  {project.location && (
+                    <div className="flex items-center gap-2 text-slate-500 mt-6">
+                      <MapPin size={18} />
+                      <span>{project.location}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </section>
+
+            <section className="section-padding">
+              <div className="container">
+                {coverImage ? (
+                  <div className="rounded-2xl overflow-hidden bg-[#F5F7FA]">
+                    <img
+                      src={coverImage}
+                      alt={project.title}
+                      className="w-full max-h-[600px] object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div className="rounded-2xl bg-[#F5F7FA] min-h-[300px] flex items-center justify-center text-slate-400">
+                    <FolderOpen size={40} />
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 mt-14">
+                  <div className="lg:col-span-2">
+                    <h2 className="text-2xl font-bold text-[#102B46] mb-6">
+                      About This Project
+                    </h2>
+
+                    <p className="text-slate-500 leading-8 whitespace-pre-line">
+                      {project.description || 'No project description available.'}
+                    </p>
+                  </div>
+
+                  <div className="bg-[#F5F7FA] rounded-xl p-7 h-fit">
+                    <h3 className="text-lg font-bold text-[#102B46] mb-6">
+                      Project Information
+                    </h3>
+
+                    {project.category && (
+                      <div className="mb-5">
+                        <p className="text-xs text-slate-400 uppercase tracking-wider mb-2">
+                          Category
+                        </p>
+                        <p className="text-sm font-semibold text-[#102B46]">
+                          {project.category}
+                        </p>
+                      </div>
+                    )}
+
+                    {project.location && (
+                      <div className="mb-5">
+                        <p className="text-xs text-slate-400 uppercase tracking-wider mb-2">
+                          Location
+                        </p>
+                        <p className="text-sm font-semibold text-[#102B46]">
+                          {project.location}
+                        </p>
+                      </div>
+                    )}
+
+                    <div>
+                      <p className="text-xs text-slate-400 uppercase tracking-wider mb-2">
+                        Status
+                      </p>
+                      <p className="text-sm font-semibold text-green-700">
+                        Completed
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {images.length > 1 && (
+                  <div className="mt-16">
+                    <h2 className="text-2xl font-bold text-[#102B46] mb-8">
+                      Project Gallery
+                    </h2>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {images.slice(1).map((image, index) => (
+                        <div
+                          key={`${image}-${index}`}
+                          className="rounded-xl overflow-hidden bg-[#F5F7FA]"
+                        >
+                          <img
+                            src={image}
+                            alt={`${project.title} - Image ${index + 2}`}
+                            loading="lazy"
+                            className="w-full h-64 object-cover hover:scale-105 transition-transform duration-500"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {project.videoUrl && (
+                  <div className="mt-16">
+                    <h2 className="text-2xl font-bold text-[#102B46] mb-8">
+                      Project Video
+                    </h2>
+
+                    <a
+                      href={project.videoUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 text-[#102B46] font-semibold hover:text-[#D99A08]"
+                    >
+                      Watch Project Video
+                      <ExternalLink size={17} />
+                    </a>
+                  </div>
+                )}
+
+                <div className="mt-20 bg-[#102B46] rounded-2xl p-8 sm:p-12 text-center">
+                  <h2 className="text-2xl sm:text-3xl font-bold text-white">
+                    Interested in a Similar Project?
+                  </h2>
+
+                  <p className="text-slate-300 mt-4 leading-7">
+                    Let our team help you find the right solar solution
+                    for your home or business.
+                  </p>
+
+                  <Link
+                    to="/contact"
+                    className="inline-flex items-center justify-center mt-8 px-7 py-3 rounded-lg bg-[#F4B928] text-[#102B46] font-bold hover:bg-[#D99A08] transition-colors"
                   >
-                    {page}
-                  </button>
-                ))}
-
-                <button
-                  type="button"
-                  onClick={() => setCurrentPage((page) => page + 1)}
-                  disabled={currentPage === totalPages}
-                  className="w-11 h-11 rounded-lg border border-slate-200 flex items-center justify-center text-[#102B46] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#F5F7FA] transition-colors"
-                  aria-label="Next page"
-                >
-                  <ChevronRight size={20} />
-                </button>
-
+                    Contact Our Team
+                  </Link>
+                </div>
               </div>
-            )}
-          </div>
-        </section>
+            </section>
+          </>
+        )}
       </main>
 
       <Footer />
@@ -198,4 +255,4 @@ function Projects() {
   );
 }
 
-export default Projects;
+export default ProjectDetails;

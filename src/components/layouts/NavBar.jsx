@@ -29,7 +29,7 @@ function Navbar() {
 
           <div>
             <h1 className="text-xl font-extrabold text-[#102B46] tracking-tight">
-              QUICKVIEW
+              AOD SOLARTRICITY
             </h1>
             <p className="text-[9px] font-semibold tracking-[2px] text-slate-500">
               SOLAR PROJECTS

@@ -5,7 +5,6 @@ import { ArrowLeft, ImagePlus, X } from 'lucide-react';
 import {
   addProject,
   uploadProjectImage,
-  deleteUploadedImage,
 } from '../../firebase/services/projectServices';
 
 function AddProject() {
@@ -49,6 +48,7 @@ function AddProject() {
 
   const handleGalleryChange = (e) => {
     const files = Array.from(e.target.files || []);
+
     const validFiles = files.filter((file) =>
       file.type.startsWith('image/')
     );
@@ -88,28 +88,18 @@ function AddProject() {
     setSaving(true);
     setError('');
 
-    const uploadedImages = [];
-
     try {
-      const folder = `projects/${Date.now()}`;
-
-      const uploadedCover = await uploadProjectImage(
-        coverImage,
-        `${folder}/cover-${coverImage.name}`
-      );
-
-      uploadedImages.push(uploadedCover.path);
+      const uploadedCover = await uploadProjectImage(coverImage);
 
       const uploadedGallery = [];
 
-      for (let i = 0; i < gallery.length; i++) {
-        const uploadedImage = await uploadProjectImage(
-          gallery[i],
-          `${folder}/gallery-${i}-${gallery[i].name}`
-        );
+      for (const file of gallery) {
+        const uploadedImage = await uploadProjectImage(file);
 
-        uploadedImages.push(uploadedImage.path);
-        uploadedGallery.push(uploadedImage);
+        uploadedGallery.push({
+          url: uploadedImage.url,
+          publicId: uploadedImage.publicId,
+        });
       }
 
       await addProject({
@@ -118,7 +108,7 @@ function AddProject() {
         status: 'Published',
         image: uploadedCover.url,
         coverImage: uploadedCover.url,
-        coverImagePath: uploadedCover.path,
+        coverImagePublicId: uploadedCover.publicId,
         gallery: uploadedGallery,
       });
 
@@ -126,11 +116,9 @@ function AddProject() {
     } catch (err) {
       console.error('Failed to add project:', err);
 
-      await Promise.allSettled(
-        uploadedImages.map((path) => deleteUploadedImage(path))
+      setError(
+        err.message || 'Unable to save project. Please try again.'
       );
-
-      setError('Unable to save project. Please try again.');
     } finally {
       setSaving(false);
     }

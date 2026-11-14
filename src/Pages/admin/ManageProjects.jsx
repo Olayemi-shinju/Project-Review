@@ -1,6 +1,7 @@
+
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Search } from 'lucide-react';
+import { Plus, Search, FolderOpen } from 'lucide-react';
 import ProjectTable from '../../components/admin/ProjectTable';
 import {
   getProjects,
@@ -12,10 +13,14 @@ function ManageProjects() {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [deletingId, setDeletingId] = useState(null);
 
   useEffect(() => {
     const fetchProjects = async () => {
       try {
+        setLoading(true);
+        setError('');
+
         const data = await getProjects();
         setProjects(data);
       } catch (err) {
@@ -34,7 +39,8 @@ function ManageProjects() {
 
     return (
       project.title?.toLowerCase().includes(searchValue) ||
-      project.location?.toLowerCase().includes(searchValue)
+      project.location?.toLowerCase().includes(searchValue) ||
+      project.category?.toLowerCase().includes(searchValue)
     );
   });
 
@@ -46,6 +52,9 @@ function ManageProjects() {
     if (!confirmed) return;
 
     try {
+      setDeletingId(project.id);
+      setError('');
+
       await deleteProject(project.id);
 
       setProjects((currentProjects) =>
@@ -54,6 +63,8 @@ function ManageProjects() {
     } catch (err) {
       console.error('Failed to delete project:', err);
       setError('Unable to delete project. Please try again.');
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -87,7 +98,7 @@ function ManageProjects() {
             type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search projects by name or location..."
+            placeholder="Search by project name, location or category..."
             className="w-full border border-slate-200 rounded-lg pl-11 pr-4 py-3 text-sm outline-none focus:border-[#102B46]"
           />
         </div>
@@ -103,11 +114,29 @@ function ManageProjects() {
         <div className="bg-white border border-slate-200 rounded-xl p-10 text-center">
           <p className="text-slate-500">Loading projects...</p>
         </div>
+      ) : filteredProjects.length === 0 ? (
+        <div className="bg-white border border-slate-200 rounded-xl p-12 text-center">
+          <FolderOpen
+            size={40}
+            className="mx-auto text-slate-300 mb-4"
+          />
+
+          <h2 className="text-lg font-bold text-[#102B46]">
+            {search ? 'No Matching Projects' : 'No Projects Yet'}
+          </h2>
+
+          <p className="text-sm text-slate-500 mt-2">
+            {search
+              ? 'Try searching with another project name or location.'
+              : 'Your added projects will appear here.'}
+          </p>
+        </div>
       ) : (
         <>
           <ProjectTable
             projects={filteredProjects}
             onDelete={handleDelete}
+            deletingId={deletingId}
           />
 
           <p className="text-sm text-slate-500">

@@ -1,3 +1,4 @@
+
 import { ArrowUpRight, Sun } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -5,9 +6,7 @@ function Footer() {
   return (
     <footer className="bg-[#102B46] text-white">
       <div className="container py-14 sm:py-16">
-
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-12">
-
           <div>
             <Link to="/" className="inline-flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-white/10 flex items-center justify-center">
@@ -15,8 +14,8 @@ function Footer() {
               </div>
 
               <div>
-                <h2 className="font-extrabold text-xl tracking-tight">
-                  QUICKVIEW
+                <h2 className="font-e Qxtrabold text-xl tracking-tight">
+                  AOD SOLARTRICITY
                 </h2>
 
                 <p className="text-[9px] font-semibold tracking-[2px] text-slate-300">
@@ -31,7 +30,6 @@ function Footer() {
             </p>
           </div>
 
-       
           <div>
             <h3 className="font-bold text-base mb-6">
               Quick Links
@@ -53,10 +51,16 @@ function Footer() {
               <Link to="/contact" className="hover:text-[#F4B928] transition-colors">
                 Contact
               </Link>
+
+              <Link
+                to="/admin/login"
+                className="hover:text-[#F4B928] transition-colors"
+              >
+                Admin Login
+              </Link>
             </div>
           </div>
 
-     
           <div>
             <h3 className="font-bold text-base mb-6">
               Get in Touch
@@ -75,10 +79,8 @@ function Footer() {
               <ArrowUpRight size={17} />
             </Link>
           </div>
-
         </div>
 
-  
         <div className="border-t border-white/10 mt-14 pt-7 flex flex-col sm:flex-row justify-between gap-4">
           <p className="text-xs text-slate-400">
             © {new Date().getFullYear()} Aod Solartricity. All rights reserved.
@@ -88,7 +90,6 @@ function Footer() {
             Solar projects. Real work. Reliable solutions.
           </p>
         </div>
-
       </div>
     </footer>
   );

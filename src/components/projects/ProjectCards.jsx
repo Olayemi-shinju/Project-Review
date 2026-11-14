@@ -1,20 +1,28 @@
+
 import { ArrowUpRight, MapPin } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 function ProjectCard({ project }) {
+  const image = project.coverImage || project.image;
+
   return (
     <article className="group bg-white p-3 rounded-xl overflow-hidden border border-slate-100 hover:border-slate-200 transition-colors duration-300">
-
       <Link
         to={`/projects/${project.slug}`}
         className="block relative h-[240px] overflow-hidden bg-[#F5F7FA]"
       >
-        <img
-          src={project.coverImage}
-          alt={project.title}
-          loading="lazy"
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-        />
+        {image ? (
+          <img
+            src={image}
+            alt={project.title}
+            loading="lazy"
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-sm text-slate-400">
+            Project image unavailable
+          </div>
+        )}
 
         <div className="absolute inset-0 bg-[#102B46]/0 group-hover:bg-[#102B46]/10 transition-colors duration-300" />
 
@@ -23,9 +31,7 @@ function ProjectCard({ project }) {
         </div>
       </Link>
 
-  
       <div className="p-5 sm:p-6">
-
         <div className="flex items-center gap-2 text-xs text-slate-400 mb-3">
           <MapPin size={14} />
           <span>{project.location}</span>
