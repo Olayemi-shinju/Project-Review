@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft, ImagePlus, X } from 'lucide-react';
 import {
@@ -7,8 +7,11 @@ import {
   uploadProjectImage,
 } from '../../firebase/services/projectServices';
 
+const MAX_GALLERY_IMAGES = 8;
+
 function AddProject() {
   const navigate = useNavigate();
+  const previewUrls = useRef(new Set());
 
   const [formData, setFormData] = useState({
     title: '',
@@ -23,6 +26,26 @@ function AddProject() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
+  useEffect(() => {
+    return () => {
+      previewUrls.current.forEach((url) => URL.revokeObjectURL(url));
+      previewUrls.current.clear();
+    };
+  }, []);
+
+  const createPreview = (file) => {
+    const url = URL.createObjectURL(file);
+    previewUrls.current.add(url);
+    return url;
+  };
+
+  const revokePreview = (url) => {
+    if (url) {
+      URL.revokeObjectURL(url);
+      previewUrls.current.delete(url);
+    }
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
 
@@ -35,38 +58,70 @@ function AddProject() {
   const handleCoverChange = (e) => {
     const file = e.target.files?.[0];
 
-    if (file) {
-      if (!file.type.startsWith('image/')) {
-        setError('Please select a valid image.');
-        return;
-      }
+    if (!file) return;
 
-      setError('');
-      setCoverImage(file);
+    if (!file.type.startsWith('image/')) {
+      setError('Please select a valid cover image.');
+      e.target.value = '';
+      return;
     }
+
+    if (coverImage) {
+      revokePreview(coverImage.preview);
+    }
+
+    setCoverImage({
+      file,
+      preview: createPreview(file),
+    });
+
+    setError('');
+    e.target.value = '';
   };
 
   const handleGalleryChange = (e) => {
     const files = Array.from(e.target.files || []);
-
     const validFiles = files.filter((file) =>
       file.type.startsWith('image/')
     );
 
+    const remainingSlots = MAX_GALLERY_IMAGES - gallery.length;
+    const acceptedFiles = validFiles.slice(0, remainingSlots);
+
+    const newImages = acceptedFiles.map((file) => ({
+      file,
+      preview: createPreview(file),
+    }));
+
+    setGallery((current) => [...current, ...newImages]);
+
     if (validFiles.length !== files.length) {
-      setError('Some files were not valid images.');
+      setError('Some selected files were not valid images.');
+    } else if (validFiles.length > remainingSlots) {
+      setError(`You can only add ${MAX_GALLERY_IMAGES} gallery images.`);
     } else {
       setError('');
     }
 
-    setGallery((current) => [...current, ...validFiles]);
     e.target.value = '';
   };
 
+  const removeCoverImage = () => {
+    if (coverImage) {
+      revokePreview(coverImage.preview);
+    }
+
+    setCoverImage(null);
+  };
+
   const removeGalleryImage = (index) => {
-    setGallery((current) =>
-      current.filter((_, i) => i !== index)
-    );
+    setGallery((current) => {
+      const imageToRemove = current[index];
+
+      revokePreview(imageToRemove.preview);
+
+      return current.filter((_, i) => i !== index);
+    });
   };
 
   const createSlug = (value) => {
@@ -85,16 +140,21 @@ function AddProject() {
       return;
     }
 
+    if (!formData.title.trim() || !formData.location.trim()) {
+      setError('Please complete the project title and location.');
+      return;
+    }
+
     setSaving(true);
     setError('');
 
     try {
-      const uploadedCover = await uploadProjectImage(coverImage);
+      const uploadedCover = await uploadProjectImage(coverImage.file);
 
       const uploadedGallery = [];
 
-      for (const file of gallery) {
-        const uploadedImage = await uploadProjectImage(file);
+      for (const image of gallery) {
+        const uploadedImage = await uploadProjectImage(image.file);
 
         uploadedGallery.push({
           url: uploadedImage.url,
@@ -104,6 +164,8 @@ function AddProject() {
 
       await addProject({
         ...formData,
+        title: formData.title.trim(),
+        location: formData.location.trim(),
         slug: createSlug(formData.title),
         status: 'Published',
         image: uploadedCover.url,
@@ -223,83 +285,135 @@ function AddProject() {
         <div className="border-t border-slate-100" />
 
         <section className="space-y-5">
-          <h2 className="font-bold text-[#102B46]">
-            Project Media
-          </h2>
-
           <div>
-            <label className="block text-sm font-semibold mb-2">
-              Cover Image
-            </label>
+            <h2 className="font-bold text-[#102B46]">
+              Project Media
+            </h2>
 
-            <label className="border-2 border-dashed border-slate-200 rounded-xl p-7 flex flex-col items-center justify-center text-center cursor-pointer hover:border-[#102B46] transition-colors">
-              <ImagePlus size={30} className="text-slate-400 mb-3" />
-
-              <span className="text-sm font-semibold text-[#102B46]">
-                {coverImage ? coverImage.name : 'Choose a cover image'}
-              </span>
-
-              <span className="text-xs text-slate-400 mt-2">
-                Select one image for the project thumbnail.
-              </span>
-
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleCoverChange}
-                required
-                className="hidden"
-              />
-            </label>
+            <p className="text-sm text-slate-500 mt-2">
+              Upload one cover image and up to eight additional gallery images.
+            </p>
           </div>
 
           <div>
-            <label className="block text-sm font-semibold mb-2">
-              Project Gallery
+            <label className="block text-sm font-semibold mb-3">
+              Cover Image <span className="text-red-500">*</span>
             </label>
 
-            <label className="border-2 border-dashed border-slate-200 rounded-xl p-7 flex flex-col items-center justify-center text-center cursor-pointer hover:border-[#102B46] transition-colors">
-              <ImagePlus size={30} className="text-slate-400 mb-3" />
+            {coverImage ? (
+              <div className="relative rounded-xl overflow-hidden border border-slate-200">
+                <img
+                  src={coverImage.preview}
+                  alt="Cover preview"
+                  className="w-full h-64 object-cover"
+                />
 
-              <span className="text-sm font-semibold text-[#102B46]">
-                Select gallery images
+                <div className="absolute bottom-0 inset-x-0 bg-black/60 text-white px-4 py-3 flex items-center justify-between gap-3">
+                  <p className="text-sm truncate">
+                    {coverImage.file.name}
+                  </p>
+
+                  <button
+                    type="button"
+                    onClick={removeCoverImage}
+                    className="flex items-center gap-1 text-sm text-red-300 hover:text-white"
+                  >
+                    <X size={17} />
+                    Remove
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <label className="border-2 border-dashed border-slate-200 rounded-xl p-7 flex flex-col items-center justify-center text-center cursor-pointer hover:border-[#102B46] transition-colors">
+                <ImagePlus size={30} className="text-slate-400 mb-3" />
+
+                <span className="text-sm font-semibold text-[#102B46]">
+                  Choose a cover image
+                </span>
+
+                <span className="text-xs text-slate-400 mt-2">
+                  This image will represent the project.
+                </span>
+
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleCoverChange}
+                  className="hidden"
+                />
+              </label>
+            )}
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <label className="block text-sm font-semibold">
+                Project Gallery
+              </label>
+
+              <span className="text-xs font-semibold text-slate-500">
+                {gallery.length}/{MAX_GALLERY_IMAGES} images
               </span>
-
-              <span className="text-xs text-slate-400 mt-2">
-                You can select multiple images.
-              </span>
-
-              <input
-                type="file"
-                accept="image/*"
-                multiple
-                onChange={handleGalleryChange}
-                className="hidden"
-              />
-            </label>
+            </div>
 
             {gallery.length > 0 && (
-              <div className="space-y-2 mt-4">
-                {gallery.map((file, index) => (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-5">
+                {gallery.map((image, index) => (
                   <div
-                    key={`${file.name}-${index}`}
-                    className="flex items-center justify-between gap-3 bg-slate-50 rounded-lg px-4 py-3"
+                    key={image.preview}
+                    className="relative group rounded-lg overflow-hidden border border-slate-200"
                   >
-                    <p className="text-sm text-slate-600 truncate">
-                      {file.name}
-                    </p>
+                    <img
+                      src={image.preview}
+                      alt={`Gallery preview ${index + 1}`}
+                      className="w-full h-36 object-cover"
+                    />
+
+                    <div className="absolute inset-x-0 bottom-0 bg-black/60 text-white p-2">
+                      <p className="text-xs truncate">
+                        {image.file.name}
+                      </p>
+                    </div>
 
                     <button
                       type="button"
                       onClick={() => removeGalleryImage(index)}
-                      aria-label={`Remove ${file.name}`}
-                      className="text-red-500 hover:text-red-700 shrink-0"
+                      aria-label={`Remove gallery image ${index + 1}`}
+                      className="absolute top-2 right-2 w-8 h-8 rounded-full bg-white text-red-500 flex items-center justify-center shadow hover:bg-red-500 hover:text-white transition-colors"
                     >
-                      <X size={18} />
+                      <X size={17} />
                     </button>
                   </div>
                 ))}
               </div>
+            )}
+
+            {gallery.length < MAX_GALLERY_IMAGES && (
+              <label className="border-2 border-dashed border-slate-200 rounded-xl p-7 flex flex-col items-center justify-center text-center cursor-pointer hover:border-[#102B46] transition-colors">
+                <ImagePlus size={30} className="text-slate-400 mb-3" />
+
+                <span className="text-sm font-semibold text-[#102B46]">
+                  Add Gallery Images
+                </span>
+
+                <span className="text-xs text-slate-400 mt-2">
+                  Select multiple images. {MAX_GALLERY_IMAGES - gallery.length} slots remaining.
+                </span>
+
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleGalleryChange}
+                  className="hidden"
+                />
+              </label>
+            )}
+
+            {gallery.length === MAX_GALLERY_IMAGES && (
+              <p className="text-sm text-green-700">
+                You've reached the maximum of eight gallery images.
+              </p>
             )}
           </div>
 
@@ -346,7 +460,7 @@ function AddProject() {
             disabled={saving}
             className="primary-button disabled:opacity-50"
           >
-            {saving ? 'Saving Project...' : 'Save Project'}
+            {saving ? 'Uploading Images & Saving...' : 'Save Project'}
           </button>
         </div>
       </form>

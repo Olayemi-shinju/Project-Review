@@ -6,6 +6,10 @@ import {
   MapPin,
   FolderOpen,
   ExternalLink,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Maximize2,
 } from 'lucide-react';
 
 import Navbar from '../components/layouts/NavBar';
@@ -18,6 +22,7 @@ function ProjectDetails() {
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [activeImage, setActiveImage] = useState(null);
 
   useEffect(() => {
     const fetchProject = async () => {
@@ -26,7 +31,6 @@ function ProjectDetails() {
         setError('');
 
         const data = await getPublishedProjectBySlug(slug);
-
         setProject(data);
       } catch (err) {
         console.error('Failed to fetch project:', err);
@@ -49,6 +53,44 @@ function ProjectDetails() {
     ...(coverImage ? [coverImage] : []),
     ...gallery.filter((image) => image !== coverImage),
   ];
+
+  const openImage = (index) => {
+    setActiveImage(index);
+  };
+
+  const closeImage = () => {
+    setActiveImage(null);
+  };
+
+  const showPrevious = () => {
+    setActiveImage((current) =>
+      current === 0 ? images.length - 1 : current - 1
+    );
+  };
+
+  const showNext = () => {
+    setActiveImage((current) =>
+      current === images.length - 1 ? 0 : current + 1
+    );
+  };
+
+  useEffect(() => {
+    if (activeImage === null) return;
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') closeImage();
+      if (e.key === 'ArrowLeft') showPrevious();
+      if (e.key === 'ArrowRight') showNext();
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = '';
+    };
+  }, [activeImage, images.length]);
 
   return (
     <>
@@ -89,11 +131,11 @@ function ProjectDetails() {
           </div>
         ) : (
           <>
-            <section className="bg-[#F5F7FA] py-16 sm:py-20">
+            <section className="bg-[#F5F7FA] py-12 sm:py-16">
               <div className="container">
                 <Link
                   to="/projects"
-                  className="inline-flex items-center gap-2 text-sm font-semibold text-[#102B46] hover:text-[#D99A08] mb-10"
+                  className="inline-flex items-center gap-2 text-sm font-semibold text-[#102B46] hover:text-[#D99A08] mb-8"
                 >
                   <ArrowLeft size={18} />
                   Back to Projects
@@ -101,18 +143,18 @@ function ProjectDetails() {
 
                 <div className="max-w-3xl">
                   {project.category && (
-                    <p className="text-sm font-semibold text-[#D99A08] uppercase tracking-wider mb-4">
+                    <p className="text-xs font-bold text-[#D99A08] uppercase tracking-widest mb-3">
                       {project.category}
                     </p>
                   )}
 
-                  <h1 className="text-3xl sm:text-5xl font-extrabold text-[#102B46] tracking-tight">
+                  <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-[#102B46] tracking-tight">
                     {project.title}
                   </h1>
 
                   {project.location && (
-                    <div className="flex items-center gap-2 text-slate-500 mt-6">
-                      <MapPin size={18} />
+                    <div className="flex items-center gap-2 text-slate-500 mt-5 text-sm">
+                      <MapPin size={17} />
                       <span>{project.location}</span>
                     </div>
                   )}
@@ -122,23 +164,34 @@ function ProjectDetails() {
 
             <section className="section-padding">
               <div className="container">
+                {/* Cover Image */}
                 {coverImage ? (
-                  <div className="rounded-2xl overflow-hidden bg-[#F5F7FA]">
+                  <button
+                    type="button"
+                    onClick={() => openImage(0)}
+                    className="relative group block w-full max-w-5xl mx-auto overflow-hidden rounded-xl bg-[#F5F7FA]"
+                  >
                     <img
                       src={coverImage}
                       alt={project.title}
-                      className="w-full max-h-[600px] object-cover"
+                      className="w-full h-64 sm:h-80 lg:h-[380px] object-cover"
                     />
-                  </div>
+
+                    <span className="absolute bottom-4 right-4 flex items-center gap-2 bg-white/95 text-[#102B46] text-xs font-semibold px-3 py-2 rounded-lg opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                      <Maximize2 size={15} />
+                      View image
+                    </span>
+                  </button>
                 ) : (
-                  <div className="rounded-2xl bg-[#F5F7FA] min-h-[300px] flex items-center justify-center text-slate-400">
+                  <div className="max-w-5xl mx-auto rounded-xl bg-[#F5F7FA] h-64 flex items-center justify-center text-slate-400">
                     <FolderOpen size={40} />
                   </div>
                 )}
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 mt-14">
+                {/* Project Information */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 lg:gap-14 mt-12 sm:mt-16">
                   <div className="lg:col-span-2">
-                    <h2 className="text-2xl font-bold text-[#102B46] mb-6">
+                    <h2 className="text-2xl font-bold text-[#102B46] mb-5">
                       About This Project
                     </h2>
 
@@ -147,7 +200,7 @@ function ProjectDetails() {
                     </p>
                   </div>
 
-                  <div className="bg-[#F5F7FA] rounded-xl p-7 h-fit">
+                  <aside className="bg-[#F5F7FA] rounded-xl p-6 sm:p-7 h-fit">
                     <h3 className="text-lg font-bold text-[#102B46] mb-6">
                       Project Information
                     </h3>
@@ -182,36 +235,58 @@ function ProjectDetails() {
                         Completed
                       </p>
                     </div>
-                  </div>
+                  </aside>
                 </div>
 
+                {/* Gallery */}
                 {images.length > 1 && (
-                  <div className="mt-16">
-                    <h2 className="text-2xl font-bold text-[#102B46] mb-8">
-                      Project Gallery
-                    </h2>
+                  <section className="mt-16 sm:mt-20">
+                    <div className="flex items-end justify-between gap-4 mb-7">
+                      <div>
+                        <h2 className="text-2xl font-bold text-[#102B46]">
+                          Project Gallery
+                        </h2>
+                        <p className="text-sm text-slate-500 mt-2">
+                          Explore more photos from this installation.
+                        </p>
+                      </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                      <span className="text-xs text-slate-400 whitespace-nowrap">
+                        {images.length} photos
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-5">
                       {images.slice(1).map((image, index) => (
-                        <div
+                        <button
+                          type="button"
                           key={`${image}-${index}`}
-                          className="rounded-xl overflow-hidden bg-[#F5F7FA]"
+                          onClick={() => openImage(index + 1)}
+                          className="relative group overflow-hidden rounded-lg bg-[#F5F7FA] text-left"
                         >
                           <img
                             src={image}
                             alt={`${project.title} - Image ${index + 2}`}
                             loading="lazy"
-                            className="w-full h-64 object-cover hover:scale-105 transition-transform duration-500"
+                            className="w-full aspect-[4/3] object-cover group-hover:scale-105 transition-transform duration-500"
                           />
-                        </div>
+
+                          <span className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                            <Maximize2
+                              size={22}
+                              className="text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                            />
+                          </span>
+                        </button>
                       ))}
                     </div>
-                  </div>
+                  </section>
                 )}
 
+                {/* Video */}
                 {project.videoUrl && (
-                  <div className="mt-16">
-                    <h2 className="text-2xl font-bold text-[#102B46] mb-8">
+                  <section className="mt-16">
+                    <h2 className="text-2xl font-bold text-[#102B46] mb-5">
                       Project Video
                     </h2>
 
@@ -224,15 +299,16 @@ function ProjectDetails() {
                       Watch Project Video
                       <ExternalLink size={17} />
                     </a>
-                  </div>
+                  </section>
                 )}
 
-                <div className="mt-20 bg-[#102B46] rounded-2xl p-8 sm:p-12 text-center">
+                {/* Contact CTA */}
+                <section className="mt-16 sm:mt-20 bg-[#102B46] rounded-2xl p-8 sm:p-12 text-center">
                   <h2 className="text-2xl sm:text-3xl font-bold text-white">
                     Interested in a Similar Project?
                   </h2>
 
-                  <p className="text-slate-300 mt-4 leading-7">
+                  <p className="text-slate-300 mt-4 leading-7 max-w-xl mx-auto">
                     Let our team help you find the right solar solution
                     for your home or business.
                   </p>
@@ -243,13 +319,68 @@ function ProjectDetails() {
                   >
                     Contact Our Team
                   </Link>
-                </div>
+                </section>
               </div>
             </section>
           </>
         )}
       </main>
 
+      {/* Image Lightbox */}
+      {activeImage !== null && images[activeImage] && (
+        <div
+          className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-4"
+          onClick={closeImage}
+        >
+          <button
+            type="button"
+            onClick={closeImage}
+            aria-label="Close image viewer"
+            className="absolute top-5 right-5 text-white hover:text-[#F4B928]"
+          >
+            <X size={30} />
+          </button>
+
+          {images.length > 1 && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                showPrevious();
+              }}
+              aria-label="Previous image"
+              className="absolute left-3 sm:left-6 text-white hover:text-[#F4B928] bg-white/10 rounded-full p-2"
+            >
+              <ChevronLeft size={28} />
+            </button>
+          )}
+
+          <img
+            src={images[activeImage]}
+            alt={`${project.title} - Image ${activeImage + 1}`}
+            onClick={(e) => e.stopPropagation()}
+            className="max-w-full max-h-[85vh] object-contain"
+          />
+
+          {images.length > 1 && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                showNext();
+              }}
+              aria-label="Next image"
+              className="absolute right-3 sm:right-6 text-white hover:text-[#F4B928] bg-white/10 rounded-full p-2"
+            >
+              <ChevronRight size={28} />
+            </button>
+          )}
+
+          <span className="absolute bottom-5 text-white/80 text-sm">
+            {activeImage + 1} / {images.length}
+          </span>
+        </div>
+      )}
       <Footer />
     </>
   );
